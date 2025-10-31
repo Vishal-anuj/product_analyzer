@@ -1,0 +1,33 @@
+# OS/temp
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+
+# Env files (secrets)
+.env
+*.env
+**/.env
+**/.env.local
+
+# Python (backend)
+backend/.venv/
+backend/__pycache__/
+backend/.pytest_cache/
+backend/*.pyc
+backend/.coverage
+backend/htmlcov/
+
+# Node/Next.js (frontend)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Misc
+coverage/
+
