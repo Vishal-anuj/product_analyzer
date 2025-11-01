@@ -1,7 +1,8 @@
 from typing import Any, Dict, List
 from models.product import Product, PriceInfo, Review
 from scrapers.amazon import scrape_amazon
-from services.ollama_client import analyze_reviews_with_ollama
+from scrapers.flipkart import scrape_flipkart
+from services.ollama_client import analyze_reviews_with_ollama, analyze_reviews_by_platform
 from db.mongo import get_collection
 
 
@@ -11,11 +12,19 @@ async def analyze_product(product_query: str) -> Dict[str, Any]:
     prices: List[PriceInfo] = []
     reviews: List[Review] = []
 
-    # Scrape Amazon first (others in future)
+    # Scrape from multiple platforms
     try:
         amazon_result = await scrape_amazon(product_query)
         prices.extend(amazon_result.get("prices", []))
         reviews.extend(amazon_result.get("reviews", []))
+    except Exception:
+        # Fail gracefully for this source
+        pass
+
+    try:
+        flipkart_result = await scrape_flipkart(product_query)
+        prices.extend(flipkart_result.get("prices", []))
+        reviews.extend(flipkart_result.get("reviews", []))
     except Exception:
         # Fail gracefully for this source
         pass
@@ -47,11 +56,17 @@ async def analyze_product(product_query: str) -> Dict[str, Any]:
         pass
 
     # Analysis via Ollama (with safe fallback)
-    analysis = await analyze_reviews_with_ollama([r.content for r in reviews])
+    # Overall analysis
+    all_review_texts = [r.content for r in reviews]
+    overall_analysis = await analyze_reviews_with_ollama(all_review_texts)
+
+    # Platform-specific sentiment analysis
+    platform_analysis = await analyze_reviews_by_platform(reviews)
 
     response = {
         "product": product.model_dump(),
-        "analysis": analysis,
+        "analysis": overall_analysis,
+        "platform_comparison": platform_analysis,
     }
     return response
 

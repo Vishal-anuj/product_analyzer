@@ -28,12 +28,32 @@ async def scrape_amazon(query: str) -> Dict[str, Any]:
     # brittle scraping and captchas. Replace with real search + parse later.
     await asyncio.sleep(0)  # yield control
 
-    prices: List[PriceInfo] = [
-        PriceInfo(platform="Amazon", url="https://www.amazon.in/s?k=" + query, price=None),
+    # Generate varied mock reviews based on query (so each product gets different reviews)
+    import hashlib
+    query_hash = int(hashlib.md5(query.lower().encode()).hexdigest()[:8], 16)
+    
+    # Vary ratings and content based on query hash
+    base_rating = 3.5 + ((query_hash % 100) / 50.0)  # 3.5 to 5.5 range
+    review_variations = [
+        (min(5.0, base_rating), "Great find", f"Really happy with my {query}. Quality is excellent and delivery was fast."),
+        (max(2.0, base_rating - 1.5), "Could be better", f"{query} works okay but expected more features for the price."),
+        (min(5.0, base_rating + 0.3), "Highly recommend", f"Best {query} I've purchased. Exceeded all my expectations!"),
+        (max(1.0, base_rating - 2.0), "Disappointing", f"Not satisfied with {query}. Build quality is poor and stopped working after a week."),
+        (base_rating, "Decent product", f"{query} is average. Does the job but nothing special."),
     ]
+    
+    prices: List[PriceInfo] = [
+        PriceInfo(
+            platform="Amazon", 
+            url="https://www.amazon.in/s?k=" + query.replace(" ", "+"), 
+            price=float(9999 + (query_hash % 50000)),
+            currency="INR"
+        ),
+    ]
+    
     reviews: List[Review] = [
-        Review(platform="Amazon", rating=4.0, title="Good", content=f"{query} is pretty decent."),
-        Review(platform="Amazon", rating=2.0, title="Average", content=f"{query} has some issues."),
+        Review(platform="Amazon", rating=rating, title=title, content=content)
+        for rating, title, content in review_variations[:3]  # Return 3 varied reviews
     ]
     return {"prices": prices, "reviews": reviews}
 
